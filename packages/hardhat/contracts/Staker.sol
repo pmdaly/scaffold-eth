@@ -48,13 +48,17 @@ contract Staker is Ownable {
   }
 
   // if the `threshold` was not met, allow everyone to call a `withdraw()` function
-  function withdraw() public payable deadlinePassed {
+  function withdraw(uint _amount) public payable {
       // if time passed and threshold not met, allow anyone to call withdraw
-      require(block.timestamp >= deadline, 'must wait until the deadline has passed');
+      require(block.timestamp > deadline, 'must wait until the deadline has passed');
+      if (address(this).balance <= threshold) {
+          openForWithdraw = true;
+      }
       require(openForWithdraw == true, 'minimum threshold met, cannot withdraw');
-      uint amount = stakedAmounts[msg.sender];
-      stakedAmounts[msg.sender] = 0;
-      payable(msg.sender).transfer(amount);
+      require(_amount <=stakedAmounts[msg.sender]);
+      stakedAmounts[msg.sender] -= _amount;
+      (bool success, ) = payable(msg.sender).call{value: _amount}("");
+      require(success, "transfer failed");
   }
 
   // Add a `timeLeft()` view function that returns the time left before the deadline for the frontend
